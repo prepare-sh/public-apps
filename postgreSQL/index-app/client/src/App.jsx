@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Grid from "./Grid";
 import { tokens } from "./tokens";
+import Pagination from "./Pagination";
 
 const pageSize = 12;
 
@@ -14,6 +15,7 @@ export default function App() {
   const [totalRows, setTotalRows] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [indexLoading, setIndexLoading] = useState(false);
 
   const fetchData = () => {
     setLoading(true);
@@ -23,6 +25,7 @@ export default function App() {
       page: String(page),
       pageSize,
     });
+
     fetch(`/users?${params}`)
       .then((r) => {
         if (!r.ok) throw new Error(`Server error ${r.status}`);
@@ -40,20 +43,28 @@ export default function App() {
 
   const handleToggleIndex = async () => {
     const action = hasIndex ? "drop" : "create";
+    setIndexLoading(true);
     await fetch("/index", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action }),
     });
-    setPage(0);
     setHasIndex((prev) => !prev);
+    setIndexLoading(false);
+    setPage(1);
     fetchData();
   };
 
   function handleSearch() {
+    setPage(1);
     fetchData();
-    setSearch("");
   }
+
+  useEffect(() => {
+    fetch("/index")
+      .then((r) => r.json())
+      .then((d) => setHasIndex(d.exists));
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -107,6 +118,9 @@ export default function App() {
               type="text"
               name="search"
               id="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
             <button
               aria-label="show users matching the search"
@@ -126,8 +140,15 @@ export default function App() {
               }}
               type="button"
               onClick={handleToggleIndex}
+              disabled={indexLoading}
             >
-              {hasIndex ? "Remove Index" : "Add Index"}
+              {indexLoading
+                ? hasIndex
+                  ? "Removing..."
+                  : "Creating..."
+                : hasIndex
+                  ? "Remove Index"
+                  : "Add Index"}
             </button>
             {queryMs !== null && (
               <p
@@ -145,49 +166,11 @@ export default function App() {
         <Grid error={error} loading={loading} pageSize={pageSize} rows={rows} />
 
         {!loading && !error && totalPages > 1 && (
-          <div style={tokens.pagination}>
-            <button
-              className="page-btn"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              style={
-                page <= 1
-                  ? { ...tokens.pageBtn, ...tokens.pageBtnDisabled }
-                  : tokens.pageBtn
-              }
-            >
-              ← Previous
-            </button>
-
-            {pages.map((n) => (
-              <button
-                key={n}
-                className="page-btn"
-                data-active={n === page}
-                onClick={() => setPage(n)}
-                style={
-                  n === page
-                    ? { ...tokens.pageBtn, ...tokens.pageBtnActive }
-                    : tokens.pageBtn
-                }
-              >
-                {n}
-              </button>
-            ))}
-
-            <button
-              className="page-btn"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              style={
-                page >= totalPages
-                  ? { ...tokens.pageBtn, ...tokens.pageBtnDisabled }
-                  : tokens.pageBtn
-              }
-            >
-              Next →
-            </button>
-          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
         )}
       </div>
     </div>

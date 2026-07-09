@@ -53,7 +53,7 @@ function Grid({ loading, pageSize, rows, error }) {
       {rows.map((item) => (
         <div key={item.id} className="interactive-card" style={tokens.card}>
           <div style={tokens.cardBody}>
-            <h3 style={tokens.cardName}>{item.username}</h3>
+            <h3 style={tokens.cardName}>{item.name}</h3>
             <div style={tokens.priceRow}>
               <span style={tokens.priceDots} />
               <p style={tokens.cardPrice}>{item.email}</p>
