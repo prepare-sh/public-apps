@@ -3,48 +3,58 @@ const cors = require("cors");
 const { Pool } = require("pg");
 
 const app = express();
+app.use(express.json());
 app.use(cors());
 
 const pool = new Pool({
   host: "localhost",
-  port: process.env.PGPORT || 5433,
+  port: process.env.PGPORT || 5432,
   user: process.env.PGUSER || "postgres",
-  // change to postgres
-  password: process.env.PGPASSWORD || "Nadir-2004",
-  database: process.env.PGDATABASE || "usersdb",
+  password: process.env.PGPASSWORD || "postgres",
+  database: process.env.PGDATABASE || "appdb",
+});
+
+app.post("/index", async (req, res) => {
+  const { action } = req.body;
+  try {
+    if (action === "create") {
+      await pool.query(
+        "CREATE INDEX IF NOT EXISTS idx_users_email ON users (email text_pattern_ops)",
+      );
+    } else {
+      await pool.query("DROP INDEX IF EXISTS idx_users_email");
+    }
+    res.json({ ok: true, action });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get("/users", async (req, res) => {
-  const { search = "", page = 1, pageSize = 5 } = req.query;
+  const { search = "", page = 1, pageSize = 12 } = req.query;
 
-  const useIndex = req.query.index === "true";
-
-  const limit = Math.max(1, Math.min(parseInt(pageSize, 10) || 5, 50));
+  const limit = Math.max(1, Math.min(parseInt(pageSize, 10) || 12, 50));
   const offset = (Math.max(1, parseInt(page, 10) || 1) - 1) * limit;
+  const start = Date.now();
 
-  // created index with CREATE INDEX idx_users_email_pattern ON users (email, varchar_pattern_ops);
   try {
-    let querytext = "";
-
-    if (useIndex) {
-      querytext = `WHERE email ILIKE '$1%'`;
-    } else {
-      querytext = `WHERE (email || '') ILIKE '$1%'`;
-    }
-
     const countResult = await pool.query(
-      `SELECT COUNT(*) FROM users ${querytext}`,
-      [search],
+      `SELECT COUNT(*) FROM users WHERE email ILIKE $1`,
+      [search + "%"],
     );
     const totalRows = parseInt(countResult.rows[0].count, 10);
 
     const dataResult = await pool.query(
-      `SELECT id, username, email
+      `SELECT id, name, email
        FROM users
-       ${querytext}
-       LIMIT $2 OFFSET $3;`,
-      [search, limit, offset],
+       WHERE email ILIKE $1
+       ORDER BY id
+       LIMIT $2 OFFSET $3`,
+      [search + "%", limit, offset],
     );
+
+    const ms = Date.now() - start;
 
     res.json({
       rows: dataResult.rows,
@@ -52,6 +62,7 @@ app.get("/users", async (req, res) => {
       pageSize: limit,
       totalRows,
       totalPages: Math.ceil(totalRows / limit),
+      ms,
     });
   } catch (err) {
     console.error(err);
@@ -59,5 +70,5 @@ app.get("/users", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`users API listening on port ${PORT}`));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Users API listening on port ${PORT}`));

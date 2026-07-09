@@ -8,7 +8,7 @@ export default defineConfig({
     host: "0.0.0.0",
     allowedHosts: true,
     proxy: {
-      "/users": "http://localhost:4000",
+      "/users": "http://localhost:3000",
     },
   },
 });

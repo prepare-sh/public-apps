@@ -2,36 +2,14 @@ import { useEffect, useState } from "react";
 import Grid from "./Grid";
 import { tokens } from "./tokens";
 
-const defaultRows = [
-  {
-    email: "bebra@gmail.com",
-    username: "user1",
-    id: 1,
-  },
-  {
-    email: "bebra@gmail.com",
-    username: "user1",
-    id: 2,
-  },
-  {
-    email: "bebra@gmail.com",
-    username: "user1",
-    id: 3,
-  },
-  {
-    email: "bebra@gmail.com",
-    username: "user1",
-    id: 4,
-  },
-];
-
 const pageSize = 12;
 
 export default function App() {
-  const [rows, setRows] = useState(defaultRows);
+  const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [hasIndex, setHasIndex] = useState(false);
   const [page, setPage] = useState(1);
+  const [queryMs, setQueryMs] = useState(null);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRows, setTotalRows] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -51,12 +29,25 @@ export default function App() {
         return r.json();
       })
       .then((d) => {
+        setQueryMs(d.ms);
         setRows(d.rows);
         setTotalPages(d.totalPages || 1);
         setTotalRows(d.totalRows || 0);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
+  };
+
+  const handleToggleIndex = async () => {
+    const action = hasIndex ? "drop" : "create";
+    await fetch("/index", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    setPage(0);
+    setHasIndex((prev) => !prev);
+    fetchData();
   };
 
   function handleSearch() {
@@ -67,11 +58,6 @@ export default function App() {
   useEffect(() => {
     fetchData();
   }, [page, pageSize]);
-
-  const handleToggleIndex = () => {
-    setPage(0);
-    setHasIndex((prev) => !prev);
-  };
 
   const pages = [];
   for (let i = 1; i <= totalPages; i++) pages.push(i);
@@ -143,7 +129,16 @@ export default function App() {
             >
               {hasIndex ? "Remove Index" : "Add Index"}
             </button>
-            {/* add a stop watch here */}
+            {queryMs !== null && (
+              <p
+                style={{
+                  color: queryMs > 100 ? "#ef4444" : "#22c55e",
+                  fontSize: 13,
+                }}
+              >
+                Query: {queryMs}ms {queryMs > 100 ? "🐌" : "⚡"}
+              </p>
+            )}
           </div>
         </div>
 
