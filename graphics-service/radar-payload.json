@@ -1,0 +1,24 @@
+﻿{
+  "type": "radar",
+  "title": "Qwen-RobotWorld",
+  "maxValue": 100,
+  "axes": [
+    { "label": "AIME Physics" },
+    { "label": "GAIA GAI" },
+    { "label": "HLE Hard" },
+    { "label": "PhD Domain" },
+    { "label": "PB Motion" },
+    { "label": "EVM Overall" },
+    { "label": "EVM HSI" },
+    { "label": "DS Total" }
+  ],
+  "series": [
+    { "name": "Qwen-RobotWorld", "values": [98.8, 87.8, 90, 65.7, 90, 92, 56.5, 82.5], "highlight": true },
+    { "name": "VLA", "values": [82, 70, 78, 55, 80, 75, 48, 68] },
+    { "name": "GigaWorld", "values": [75, 65, 70, 50, 72, 68, 44, 60] },
+    { "name": "Cosmos", "values": [70, 60, 65, 45, 68, 62, 40, 55] },
+    { "name": "Gen3", "values": [65, 55, 60, 42, 63, 58, 38, 50] },
+    { "name": "LTX-2", "values": [60, 50, 55, 38, 58, 52, 35, 46] },
+    { "name": "WOVO", "values": [55, 48, 50, 35, 52, 48, 32, 42] }
+  ]
+}
