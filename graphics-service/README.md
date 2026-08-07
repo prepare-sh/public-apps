@@ -39,6 +39,31 @@ curl -X POST http://localhost:3000/render \
 
 Add `?format=svg` to get raw SVG back instead of a rasterized PNG.
 
+## Multiple charts (grid)
+
+You can compose several charts into a single image using the `/render/multiple` endpoint. Provide an array of validated chart requests in `requests` and optional layout `options` (`cols`, `spacing`, `background`). The endpoint returns PNG by default; add `?format=svg` to get SVG.
+
+```bash
+curl -X POST http://localhost:3000/render/multiple?format=png \
+  -H "Content-Type: application/json" \
+  -d '{
+    "requests": [
+      {
+        "type": "benchmark",
+        "title": "Speed",
+        "bars": [ { "label": "A", "value": 10 }, { "label": "B", "value": 8 } ]
+      },
+      {
+        "type": "radar",
+        "title": "Capabilities",
+        "axes": [ { "label": "X" }, { "label": "Y" }, { "label": "Z" } ],
+        "series": [ { "name": "S1", "values": [1,2,3], "highlight": true } ]
+      }
+    ],
+    "options": { "cols": 2, "spacing": 16 }
+  }' -o grid.png
+```
+
 ## Templates
 
 Every request is discriminated by its `type` field.
@@ -76,13 +101,13 @@ curl -X POST http://localhost:3000/render \
   }' -o radar.png
 ```
 
-| Field | Notes |
-| --- | --- |
-| `axes[].max` | Per-axis maximum, for axes with different natural scales. Falls back to `maxValue`. |
-| `maxValue` | Global scale. Required unless *every* axis sets its own `max` — otherwise the request is rejected with a 400. |
-| `series[].values` | Must contain exactly one value per axis, or the request is rejected with a 400. |
+| Field                | Notes                                                                                                                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `axes[].max`         | Per-axis maximum, for axes with different natural scales. Falls back to `maxValue`.                                                                                           |
+| `maxValue`           | Global scale. Required unless _every_ axis sets its own `max` — otherwise the request is rejected with a 400.                                                                 |
+| `series[].values`    | Must contain exactly one value per axis, or the request is rejected with a 400.                                                                                               |
 | `series[].highlight` | Marks the one series whose vertices get value labels. Defaults to the first series. Labelling every vertex of every series is illegible, so only one series is ever labelled. |
-| `series[].color` | Hex override. By default series take colors from `seriesPalette` by index, so the same input always yields the same colors. |
+| `series[].color`     | Hex override. By default series take colors from `seriesPalette` by index, so the same input always yields the same colors.                                                   |
 
 Two layout behaviors are worth knowing about, both driven by the input:
 
