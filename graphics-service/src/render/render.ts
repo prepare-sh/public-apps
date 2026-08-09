@@ -8,6 +8,8 @@ import {
   BenchmarkChart,
   benchmarkChartDimensions,
 } from "../templates/BenchmarkChart.js";
+import { barChartSchema } from "../schemas/bar.js";
+import { BarChart, barChartDimensions } from "../templates/BarChart.js";
 import { radarChartSchema } from "../schemas/radar.js";
 import { RadarChart, radarChartDimensions } from "../templates/RadarChart.js";
 import type {
@@ -26,6 +28,7 @@ const FONT_DIR = path.resolve(__dirname, "../../assets/fonts");
  */
 export const renderRequestSchema = z.discriminatedUnion("type", [
   benchmarkSchema,
+  barChartSchema,
   radarChartSchema,
 ]);
 
@@ -53,6 +56,11 @@ export function renderToSvg(request: RenderRequest): RenderResult {
     case "benchmark": {
       const { width, height } = benchmarkChartDimensions(request);
       const svg = renderToStaticMarkup(BenchmarkChart(request));
+      return { svg, width, height };
+    }
+    case "bar": {
+      const { width, height } = barChartDimensions(request);
+      const svg = renderToStaticMarkup(BarChart(request));
       return { svg, width, height };
     }
     case "radar": {
