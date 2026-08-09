@@ -25,16 +25,26 @@ export const radius = {
 
 export type RadiusToken = keyof typeof radius;
 
+/**
+ * Accent hues are the `--rb-badge-fg` values from the site's badge system, so
+ * a chart dropped into an article matches the badges around it. The badges
+ * pair each hue with the same hue at 17% alpha for their background — that
+ * ratio is `ACCENT_TINT_OPACITY` below.
+ */
 export const color = {
-  primary: "#2563EB",
+  primary: "#3B6FFF",
   success: "#16A34A",
   warning: "#F59E0B",
   danger: "#DC2626",
+  purple: "#7C3AED",
   background: "#FFFFFF",
   text: "#111827",
   muted: "#6B7280",
   border: "#E5E7EB",
 } as const;
+
+/** Alpha the badge system uses for an accent's tinted background. */
+export const ACCENT_TINT_OPACITY = 0.17;
 
 export type ColorToken = keyof typeof color;
 
@@ -48,6 +58,7 @@ export const accent = {
   success: color.success,
   warning: color.warning,
   danger: color.danger,
+  purple: color.purple,
   muted: color.muted,
 } as const;
 
@@ -61,19 +72,30 @@ export type AccentToken = keyof typeof accent;
  * the palette.
  */
 export const seriesPalette = [
-  "#2563EB", // blue (primary)
-  "#16A34A", // green
-  "#F59E0B", // amber
-  "#DC2626", // red
-  "#7C3AED", // violet
+  color.primary, // blue
+  color.success, // green
+  color.warning, // amber
+  color.danger, // red
+  color.purple, // purple
+  color.muted, // gray
+  // Beyond the six badge hues the palette has to invent colors; these are
+  // picked to sit at the same saturation so a 7+ series chart stays coherent.
   "#0EA5E9", // sky
   "#DB2777", // pink
   "#65A30D", // lime
-  "#6B7280", // gray
   "#0D9488", // teal
 ] as const;
 
-export const fontFamily = "Inter, sans-serif";
+/**
+ * resvg resolves this against `assets/fonts` only (system fonts are off), so
+ * "Source Sans 3" is the one entry that actually matches — the rest mirror the
+ * site's CSS stack and serve as documentation for SVG output rendered in a
+ * browser, where the earlier names may resolve.
+ */
+// Single-quoted deliberately: this string is interpolated raw into a
+// double-quoted `font-family="..."` attribute in renderMultipleToSvg.
+export const fontFamily =
+  "'Source Sans Pro', 'Source Sans 3', ui-sans-serif, system-ui, sans-serif";
 
 export const fontWeight = {
   regular: 400,

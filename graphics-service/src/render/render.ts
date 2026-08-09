@@ -71,13 +71,13 @@ export function renderToSvg(request: RenderRequest): RenderResult {
   }
 }
 
-/** Rasterizes an SVG string to PNG bytes using resvg, with Inter embedded. */
+/** Rasterizes an SVG string to PNG bytes using resvg, with Source Sans 3 embedded. */
 export function svgToPng(svg: string): Buffer {
   const resvg = new Resvg(svg, {
     font: {
       fontDirs: [FONT_DIR],
       loadSystemFonts: false,
-      defaultFontFamily: "Inter",
+      defaultFontFamily: "Source Sans 3",
     },
   });
   const rendered = resvg.render();

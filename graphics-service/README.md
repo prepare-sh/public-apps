@@ -73,7 +73,7 @@ Every request is discriminated by its `type` field.
 | Field       | Notes                                                                                                                                                        |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `width`     | Canvas width in px. Benchmark defaults to 720 (320–2400), radar to 720 (400–1600).                                                                            |
-| `height`    | Canvas height in px — a _floor_, not an override. A height below what the content needs would clip it, so the computed height wins; extra room sits at the bottom. |
+| `height`    | Canvas height in px — a _floor_, not an override. A height below what the content needs would clip it, so the computed height wins; extra room sits at the bottom. Exception: `bar` spends the extra room on a taller plot. |
 | `textAlign` | `left` (default) / `center` / `right`. Aligns the title and subtitle block. Everything else (bar rows, axis labels, legend) keeps its own layout rules.        |
 
 ```json
@@ -90,8 +90,44 @@ Every request is discriminated by its `type` field.
 ### `benchmark` — horizontal bar chart
 
 See the Quick start example above. Bars take an optional `variant`
-(`primary` / `success` / `warning` / `danger` / `muted`) and `highlight`,
+(`primary` / `success` / `warning` / `danger` / `purple` / `muted`) and `highlight`,
 which attaches a "Best" badge.
+
+### `bar` — vertical column chart
+
+Categories along the x-axis, values rising from a zero baseline. Use this
+when the category labels are short (months, regions, versions); use
+`benchmark` when the labels are long, since horizontal rows give them room.
+
+```bash
+curl -X POST http://localhost:3000/render \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "bar",
+    "title": "Throughput by Engine",
+    "subtitle": "Queries per second, higher is better.",
+    "unit": "k",
+    "columns": [
+      { "label": "Postgres", "value": 42.5, "highlight": true },
+      { "label": "MySQL",    "value": 31.2 },
+      { "label": "SQLite",   "value": 18.9 },
+      { "label": "DuckDB",   "value": 27.4, "variant": "success" }
+    ]
+  }' -o bar.png
+```
+
+| Field                 | Notes                                                                                                                            |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `columns[].variant`   | `primary` (default) / `success` / `warning` / `danger` / `purple` / `muted`.                                                                 |
+| `columns[].highlight` | Dims every _other_ column to 35% opacity, so one column carries the point. No badge — it would collide with the value label.      |
+| `maxValue`            | Axis max. If omitted, it's rounded up from the tallest column to a round number (1 / 2 / 2.5 / 5 / 10 × 10ⁿ) so ticks read cleanly. |
+| `showValues`          | Value label above each column. Defaults to `true`; turn it off for dense charts.                                                 |
+| `height`              | **Differs from the other templates**: extra height grows the plot (taller columns) rather than padding the canvas.                |
+
+Gridlines sit at 0 / 25 / 50 / 75 / 100% of scale, and the tick gutter is
+measured from the widest tick label. Column width is 62% of the available
+pitch, capped at 56px — so a 3-column chart doesn't render three slabs.
+Category labels truncate to their pitch rather than overlapping.
 
 ### `radar` — multi-axis radar / spider chart
 
@@ -127,12 +163,21 @@ curl -X POST http://localhost:3000/render \
 | `series[].values`    | Must contain exactly one value per axis, or the request is rejected with a 400.                                                                                               |
 | `series[].highlight` | Marks the one series whose vertices get value labels. Defaults to the first series. Labelling every vertex of every series is illegible, so only one series is ever labelled. |
 | `series[].color`     | Hex override. By default series take colors from `seriesPalette` by index, so the same input always yields the same colors.                                                   |
+| `fill`               | Which series get a translucent area fill: `auto` (default) / `all` / `highlight` / `none`. See below.                                                                          |
 
 Two layout behaviors are worth knowing about, both driven by the input:
 
 - **Area fills drop out past 3 series.** Translucent fills stack into an
   opaque blob that hides the grid, so beyond three series only the
-  highlighted area stays filled and the rest render as outlines.
+  highlighted area stays filled and the rest render as outlines. That's the
+  `fill: "auto"` default; override it per request:
+
+  | `fill`      | Behavior                                                                          |
+  | ----------- | ----------------------------------------------------------------------------------- |
+  | `auto`      | Default. Fill everything up to 3 series; past that, fill only the highlighted one. |
+  | `all`       | Always fill every series. Legible at 2–3 series, muddy at 4+.                      |
+  | `highlight` | Only the highlighted series is filled, however many there are.                     |
+  | `none`      | Pure outlines. The cleanest read for 4+ series where every series matters equally.  |
 - **The axis-label gutter is measured, not fixed.** It grows to fit the
   widest label (capped at 30% of width, with truncation as a backstop), so
   long axis labels shrink the plot rather than clipping off the edge.
@@ -154,16 +199,22 @@ src/
     Arrow.tsx                 Connector with arrowhead marker, for diagrams
   templates/
     BenchmarkChart.tsx        Horizontal bar chart
+    BarChart.tsx              Vertical column chart + value-axis helpers
     RadarChart.tsx            Multi-axis radar chart + polar coordinate helpers
   schemas/
     benchmark.ts              Zod schema for the benchmark template
+    bar.ts                    Zod schema for the bar template
     radar.ts                  Zod schema for the radar template
+    common.ts                 Fields shared across templates (textAlign)
   utils/
     tokens.ts                 Spacing / radius / color / typography scales
+    layout.ts                 textAlign anchoring + height-floor helper
   types/
     index.ts                  Shared render-pipeline types
 assets/
-  fonts/                      Inter TTFs (Regular/Medium/SemiBold/Bold), embedded at raster time
+  fonts/                      Source Sans 3 TTFs (Regular/Medium/SemiBold/Bold), embedded at raster time
+scripts/
+  build-fonts.py              Rebuilds those TTFs from the @fontsource devDependency
 ```
 
 ## Design tokens
@@ -174,24 +225,47 @@ numbers or colors are allowed in components or templates.
 - **Spacing**: 4, 8, 12, 16, 24, 32, 48
 - **Radius**: 6, 8, 12
 - **Typography**: title / subtitle / heading / label / body / caption / value
-  — each a fixed `{fontSize, fontWeight, lineHeight}` triple, Inter only,
-  weights limited to 400/500/600/700
-- **Color**: primary `#2563EB`, success `#16A34A`, warning `#F59E0B`,
-  danger `#DC2626`, background `#FFFFFF`, text `#111827`, muted `#6B7280`,
-  border `#E5E7EB`
+  — each a fixed `{fontSize, fontWeight, lineHeight}` triple, Source Sans 3
+  only, weights limited to 400/500/600/700. The `fontFamily` token emits the
+  site's full CSS stack (`'Source Sans Pro', 'Source Sans 3', ui-sans-serif,
+  system-ui, sans-serif`) so SVG output matches in a browser, but the PNG
+  rasterizer only ever resolves Source Sans 3 — see below.
+- **Color**: the accent hues are the `--rb-badge-fg` values from the site's
+  badge system, so a chart sits alongside the badges in an article without
+  clashing: primary `#3B6FFF`, success `#16A34A`, warning `#F59E0B`, danger
+  `#DC2626`, purple `#7C3AED`, muted `#6B7280`. Plus background `#FFFFFF`,
+  text `#111827`, border `#E5E7EB`.
+- **Accent tint**: `ACCENT_TINT_OPACITY` (0.17) is the alpha the badge system
+  pairs with each `fg` hue for its background. Radar area fills use it, so a
+  filled area reads as the same tint as a badge of that color.
 - **Series palette**: a fixed, ordered array of 10 categorical colors for
-  charts with more series than the 5 semantic accents can cover. Assigned by
-  index (`seriesPalette[i % seriesPalette.length]`), so colors are stable
-  across renders. Deliberately desaturated to match the rest of the palette.
+  charts with more series than the semantic accents can cover. The first six
+  _are_ the badge hues; the last four (sky, pink, lime, teal) are picked at
+  matching saturation to extend the set. Assigned by index
+  (`seriesPalette[i % seriesPalette.length]`), so colors are stable across
+  renders.
 
 ## Why a font is vendored in `assets/fonts`
 
-`@resvg/resvg-js` (the Rust `resvg` rasterizer) does not reliably shape text
-from `.woff2` — glyphs silently disappear. The four Inter weights this
-service uses were extracted from the `inter-ui` npm package and converted to
-`.ttf` (via `fonttools`) ahead of time, then wired into resvg's `fontDirs`.
-This keeps rendering fully offline and deterministic — no network font
-fetch, no system-font dependency.
+`@resvg/resvg-js` (the Rust `resvg` rasterizer) runs with
+`loadSystemFonts: false` and does not reliably shape text from `.woff2` —
+glyphs silently disappear. So the four Source Sans 3 weights are converted to
+`.ttf` ahead of time and wired into resvg's `fontDirs`. Rendering stays fully
+offline and deterministic: no network font fetch, no system-font dependency.
+
+The consequence worth knowing: the CSS font stack in the `fontFamily` token is
+inert as far as PNG output goes. `Source Sans Pro`, `ui-sans-serif`, and
+`system-ui` are not in `assets/fonts`, so they can never resolve — every PNG
+renders in Source Sans 3. The stack only does real work for `?format=svg`
+output displayed in a browser.
+
+`python scripts/build-fonts.py` regenerates the TTFs from the
+`@fontsource/source-sans-3` devDependency (needs `pip install fonttools`). It
+merges the `latin`, `latin-ext`, `greek`, and `cyrillic` subsets into one file
+per weight — ~970 codepoints, 164KB each — and rewrites the name tables so all
+four weights share a single `Source Sans 3` family. Without that rewrite the
+500/600 faces declare themselves as separate families and a `font-weight: 500`
+lookup silently falls back to Regular.
 
 ## Adding a new template
 
@@ -214,4 +288,5 @@ rasterization are all template-agnostic.
 Per the brief: `ArchitectureDiagram`, `ComparisonTable`, and
 `PipelineDiagram` templates are not implemented. The primitive set
 (`Arrow`, `Card`, etc.) already anticipates them, but only
-`BenchmarkChart` and `RadarChart` are wired into the render pipeline.
+`BenchmarkChart`, `BarChart` and `RadarChart` are wired into the render
+pipeline.

@@ -2,7 +2,7 @@ import { Canvas } from "../components/Canvas.js";
 import { Text, measureText } from "../components/Text.js";
 import { Line } from "../components/Line.js";
 import { Polygon } from "../components/Polygon.js";
-import { color, spacing, seriesPalette } from "../utils/tokens.js";
+import { ACCENT_TINT_OPACITY, color, spacing, seriesPalette } from "../utils/tokens.js";
 import { applyMinHeight, headingAnchor, type HeadingAnchor } from "../utils/layout.js";
 import type { RadarChartInput, RadarSeries } from "../schemas/radar.js";
 
@@ -29,11 +29,12 @@ const VERTEX_LABEL_OFFSET = 13;
 const MIN_PLOT_RADIUS = 80;
 
 const RING_RATIOS = [0.25, 0.5, 0.75, 1] as const;
-const AREA_FILL_OPACITY = 0.18;
+/** Matches the badge system's tinted background, so fills read as the same family. */
+const AREA_FILL_OPACITY = ACCENT_TINT_OPACITY;
 /**
  * Past this many series the translucent fills stack into an opaque blob that
- * swallows the grid, so only the highlighted area stays filled and the rest
- * read as outlines.
+ * swallows the grid, so "auto" falls back to filling only the highlighted
+ * area and the rest read as outlines.
  */
 const MAX_FILLED_SERIES = 3;
 const AREA_STROKE_WIDTH = 1.75;
@@ -132,6 +133,20 @@ function axisLabelGutter(input: RadarChartInput, width: number): number {
     Math.max(widest + AXIS_LABEL_OFFSET, AXIS_LABEL_GUTTER_MIN_X),
     width * AXIS_LABEL_GUTTER_MAX_RATIO,
   );
+}
+
+/** Resolves the `fill` mode to a per-series predicate. */
+function shouldFill(input: RadarChartInput): (highlight: boolean) => boolean {
+  switch (input.fill ?? "auto") {
+    case "all":
+      return () => true;
+    case "none":
+      return () => false;
+    case "highlight":
+      return (highlight) => highlight;
+    case "auto":
+      return (highlight) => input.series.length <= MAX_FILLED_SERIES || highlight;
+  }
 }
 
 function seriesColor(series: RadarSeries, index: number): string {
@@ -249,6 +264,7 @@ export function RadarChart(props: RadarChartInput) {
     (a, b) => Number(a.highlight) - Number(b.highlight),
   );
   const highlighted = seriesGeometry.find((s) => s.highlight);
+  const fillFor = shouldFill(props);
 
   return (
     <Canvas width={width} height={height}>
@@ -303,7 +319,7 @@ export function RadarChart(props: RadarChartInput) {
       })}
 
       {drawOrder.map((s) => {
-        const filled = series.length <= MAX_FILLED_SERIES || s.highlight;
+        const filled = fillFor(s.highlight);
         return (
           <g key={`series-${s.name}`}>
             <Polygon

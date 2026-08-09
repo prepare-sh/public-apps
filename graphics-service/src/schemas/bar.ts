@@ -4,7 +4,7 @@ import { textAlignSchema } from "./common.js";
 export const barColumnSchema = z.object({
   label: z.string().min(1).max(40),
   value: z.number().min(0).max(1_000_000),
-  variant: z.enum(["primary", "success", "warning", "danger", "muted"]).optional(),
+  variant: z.enum(["primary", "success", "warning", "danger", "purple", "muted"]).optional(),
   /** Dims every other column, so one bar carries the point of the chart. */
   highlight: z.boolean().optional(),
 });

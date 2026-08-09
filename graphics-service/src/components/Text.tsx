@@ -42,9 +42,12 @@ export function Text({
 /** Measures approximate rendered width of a string for a given typography variant. */
 export function measureText(text: string, variant: TypographyToken = "body"): number {
   const { fontSize, fontWeight } = typography[variant];
-  // Average glyph-width heuristic for Inter. Deterministic and good enough
-  // for layout (centering, right-alignment, column sizing) without needing
-  // a headless font-metrics engine.
-  const avgCharWidth = fontSize * (fontWeight >= 600 ? 0.58 : 0.54);
+  // Average glyph-width heuristic. The ratios come from the actual Source
+  // Sans 3 `hmtx` advances over a chart-label-shaped sample (measured: .473
+  // regular / .481 medium / .489 semibold / .504 bold), rounded up for a
+  // small safety margin — this drives gutters, so under-measuring clips.
+  // Deterministic and good enough for layout without a font-metrics engine
+  // at render time.
+  const avgCharWidth = fontSize * (fontWeight >= 600 ? 0.52 : 0.49);
   return Math.ceil(text.length * avgCharWidth);
 }

@@ -33,6 +33,12 @@ export const radarChartSchema = z
     height: z.number().int().min(200).max(4000).optional(),
     /** Alignment of the title/subtitle block. Defaults to "left". */
     textAlign: textAlignSchema.optional(),
+    /**
+     * Which series get a translucent area fill. Defaults to "auto": all of
+     * them up to three series, highlighted-only beyond that, since stacked
+     * fills swallow the grid.
+     */
+    fill: z.enum(["auto", "all", "highlight", "none"]).optional(),
   })
   .refine((data) => data.series.every((s) => s.values.length === data.axes.length), {
     message: "Each series' values array must have exactly one value per axis",

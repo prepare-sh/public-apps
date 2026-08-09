@@ -4,7 +4,7 @@ import { textAlignSchema } from "./common.js";
 export const benchmarkBarSchema = z.object({
   label: z.string().min(1).max(60),
   value: z.number().min(0).max(1000),
-  variant: z.enum(["primary", "success", "warning", "danger", "muted"]).optional(),
+  variant: z.enum(["primary", "success", "warning", "danger", "purple", "muted"]).optional(),
   highlight: z.boolean().optional(),
 });
 
