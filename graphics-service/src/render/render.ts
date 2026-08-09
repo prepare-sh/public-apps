@@ -107,19 +107,58 @@ export function renderImage(
 }
 
 /**
+ * How a cell shorter than its row is placed in the leftover vertical space.
+ *
+ * - `top`     — hug the top, whitespace below. The original behavior.
+ * - `center`  — split the leftover space above and below.
+ * - `stretch` — re-render the cell at the row height, so templates that spend
+ *               extra height on content (`bar`) actually fill the row. Ones
+ *               that only pad fall back to behaving like `top`.
+ */
+export type GridVAlign = "top" | "center" | "stretch";
+
+/** Row heights of an already-rendered set of fragments laid out in `cols` columns. */
+function rowHeightsOf(rendered: RenderResult[], cols: number): number[] {
+  const heights = new Array<number>(Math.ceil(rendered.length / cols)).fill(0);
+  rendered.forEach((r, i) => {
+    const row = Math.floor(i / cols);
+    if (r.height > heights[row]!) heights[row] = r.height;
+  });
+  return heights;
+}
+
+/**
  * Compose multiple validated render requests into a single SVG arranged
  * in an invisible grid (no lines) with `cols` columns and `spacing` pixels
  * between items.
  */
 export function renderMultipleToSvg(
   requests: RenderRequest[],
-  options?: { cols?: number; spacing?: number; background?: string },
+  options?: {
+    cols?: number;
+    spacing?: number;
+    background?: string;
+    valign?: GridVAlign;
+  },
 ): RenderResult {
   const cols = Math.max(1, Math.floor(options?.cols ?? requests.length));
   const spacing = options?.spacing ?? tokensSpacing.lg;
+  const valign = options?.valign ?? "top";
 
   // Render each request to its own SVG fragment and dimensions
-  const rendered = requests.map((r) => renderToSvg(r));
+  let rendered = requests.map((r) => renderToSvg(r));
+
+  // "stretch" needs the row heights before it can re-render, so measure first.
+  if (valign === "stretch") {
+    const measured = rowHeightsOf(rendered, cols);
+    rendered = requests.map((r, i) => {
+      const target = measured[Math.floor(i / cols)];
+      // `height` is a floor in every template, so this can never clip. It only
+      // changes the picture for templates that spend extra height on content
+      // (`bar` grows its plot); the rest just pad, same as "top".
+      return target === undefined ? renderToSvg(r) : renderToSvg({ ...r, height: target });
+    });
+  }
 
   // Helper: strip outer <svg> wrapper and remove an initial background rect
   function stripInner(svg: string) {
@@ -175,7 +214,10 @@ export function renderMultipleToSvg(
       const c = i % cols;
       const r = Math.floor(i / cols);
       const x = colOffsets[c];
-      const y = rowOffsets[r];
+      // "stretch" already re-rendered at the row height where that helps, so
+      // any remaining slack is a template that can only pad — leave it at top.
+      const slack = valign === "center" ? (rowHeights[r] - f.height) / 2 : 0;
+      const y = (rowOffsets[r] ?? 0) + slack;
       return `<g transform="translate(${x} ${y})">${f.inner}</g>`;
     })
     .join("\n");

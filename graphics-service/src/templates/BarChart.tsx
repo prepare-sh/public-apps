@@ -5,6 +5,7 @@ import { Line } from "../components/Line.js";
 import { spacing, type AccentToken } from "../utils/tokens.js";
 import { headingAnchor, type HeadingAnchor } from "../utils/layout.js";
 import type { BarChartInput } from "../schemas/bar.js";
+import { formatValue } from "../utils/format.js";
 
 const PADDING = spacing.xl; // 24
 const HEADER_HEIGHT_NO_SUBTITLE = 52;
@@ -29,11 +30,6 @@ const COLUMN_MIN_WIDTH = 4;
 const VALUE_LABEL_GAP = 6;
 /** Columns lose contrast when another column is the highlighted one. */
 const DIMMED_OPACITY = 0.35;
-
-function formatValue(value: number, unit?: string): string {
-  const rounded = Number.isInteger(value) ? value.toString() : value.toFixed(1);
-  return unit ? `${rounded}${unit}` : rounded;
-}
 
 /**
  * Rounds an axis max up to a round number (1 / 2 / 2.5 / 5 / 10 × 10^n), so

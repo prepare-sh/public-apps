@@ -5,6 +5,7 @@ import { Polygon } from "../components/Polygon.js";
 import { ACCENT_TINT_OPACITY, color, spacing, seriesPalette } from "../utils/tokens.js";
 import { applyMinHeight, headingAnchor, type HeadingAnchor } from "../utils/layout.js";
 import type { RadarChartInput, RadarSeries } from "../schemas/radar.js";
+import { formatNumber } from "../utils/format.js";
 
 const PADDING = spacing.xl; // 24
 const HEADER_HEIGHT_NO_SUBTITLE = 52;
@@ -106,10 +107,6 @@ function baselineShiftForAngle(angle: number): number {
   return dy > 0 ? 12 : -4;
 }
 
-function formatValue(value: number): string {
-  return Number.isInteger(value) ? value.toString() : value.toFixed(1);
-}
-
 function truncate(text: string, maxWidth: number): string {
   const width = measureText(text, "label");
   if (width <= maxWidth) return text;
@@ -202,17 +199,34 @@ function radarChartLayout(input: RadarChartInput): RadarLayout {
   const headerHeight = input.subtitle ? HEADER_HEIGHT_WITH_SUBTITLE : HEADER_HEIGHT_NO_SUBTITLE;
 
   const gutterX = axisLabelGutter(input, width);
-  const plotRadius = Math.max(MIN_PLOT_RADIUS, (width - 2 * PADDING - 2 * gutterX) / 2);
+  const rows = legendRows(input, width - 2 * PADDING);
 
+  // Everything above/below the circle. Independent of the radius, so it can be
+  // subtracted from a requested height to find the radius that would fit.
   const plotTop = PADDING + headerHeight;
+  const chromeHeight =
+    plotTop +
+    2 * AXIS_LABEL_GUTTER_Y +
+    LEGEND_TOP_GAP +
+    rows.length * LEGEND_ROW_HEIGHT +
+    PADDING;
+
+  // Width alone would make the plot as large as the label gutters allow. A
+  // requested `height` caps it — otherwise a radar in a grid row forces every
+  // other cell in that row to match its near-square natural height.
+  const widthRadius = (width - 2 * PADDING - 2 * gutterX) / 2;
+  const heightRadius =
+    input.height !== undefined ? (input.height - chromeHeight) / 2 : Infinity;
+  const plotRadius = Math.max(MIN_PLOT_RADIUS, Math.min(widthRadius, heightRadius));
+
   const center: Point = {
     x: width / 2,
     y: plotTop + AXIS_LABEL_GUTTER_Y + plotRadius,
   };
 
   const legendTop = center.y + plotRadius + AXIS_LABEL_GUTTER_Y + LEGEND_TOP_GAP;
-  const rows = legendRows(input, width - 2 * PADDING);
   const content = legendTop + rows.length * LEGEND_ROW_HEIGHT + PADDING;
+  // Still a floor as well: a height above the natural size pads the bottom.
   const height = applyMinHeight(content, input.height);
 
   return {
@@ -344,7 +358,7 @@ export function RadarChart(props: RadarChartInput) {
           variant="caption"
           align={anchorForAngle(vertex.angle)}
         >
-          {formatValue(vertex.value)}
+          {formatNumber(vertex.value)}
         </Text>
       ))}
 

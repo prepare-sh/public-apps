@@ -41,7 +41,7 @@ Add `?format=svg` to get raw SVG back instead of a rasterized PNG.
 
 ## Multiple charts (grid)
 
-You can compose several charts into a single image using the `/render/multiple` endpoint. Provide an array of validated chart requests in `requests` and optional layout `options` (`cols`, `spacing`, `background`). The endpoint returns PNG by default; add `?format=svg` to get SVG.
+You can compose several charts into a single image using the `/render/multiple` endpoint. Provide an array of validated chart requests in `requests` and optional layout `options` (`cols`, `spacing`, `background`, `valign`). The endpoint returns PNG by default; add `?format=svg` to get SVG.
 
 ```bash
 curl -X POST http://localhost:3000/render/multiple?format=png \
@@ -64,6 +64,34 @@ curl -X POST http://localhost:3000/render/multiple?format=png \
   }' -o grid.png
 ```
 
+### Uneven cell heights
+
+Every cell in a row is laid out against the tallest chart in that row. Since
+templates size themselves from their content, a tall neighbour leaves the
+short ones stranded at the top of their cell with whitespace underneath.
+`valign` decides what happens to that leftover space:
+
+| `valign`  | Behavior                                                                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `top`     | Default. Hug the top, whitespace below. Unchanged from before the option existed.                                                                            |
+| `stretch` | Re-render each cell at its row's height. `bar` grows its plot and `benchmark` spreads its rows, so they genuinely fill; `radar` can only pad, so it stays top-aligned. |
+| `center`  | Split the leftover space above and below. Note this pushes titles out of line with each other across a row, which usually looks worse than `stretch`.        |
+
+`stretch` handles the common case, but it can only work with the height a row
+already has. A `radar` is close to square, so one in a grid forces its whole
+row to that height — give it an explicit `height` to cap its plot radius
+rather than letting it drive the row:
+
+```json
+{
+  "requests": [
+    { "type": "radar", "title": "Capabilities", "height": 420, "maxValue": 100, "axes": [], "series": [] },
+    { "type": "bar", "title": "Reliability", "columns": [] }
+  ],
+  "options": { "cols": 2, "spacing": 24, "valign": "stretch" }
+}
+```
+
 ## Templates
 
 Every request is discriminated by its `type` field.
@@ -73,8 +101,9 @@ Every request is discriminated by its `type` field.
 | Field       | Notes                                                                                                                                                        |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `width`     | Canvas width in px. Benchmark defaults to 720 (320–2400), radar to 720 (400–1600).                                                                            |
-| `height`    | Canvas height in px — a _floor_, not an override. A height below what the content needs would clip it, so the computed height wins; extra room sits at the bottom. Exception: `bar` spends the extra room on a taller plot. |
+| `height`    | Canvas height in px — a _floor_, not an override. A height below what the content needs would clip it, so the computed height wins; extra room sits at the bottom. Two templates spend the extra room rather than padding with it: `bar` grows its plot, `benchmark` grows its row pitch (capped at 72px/row). `radar` also treats it as a _ceiling_, shrinking its plot radius to fit. |
 | `textAlign` | `left` (default) / `center` / `right`. Aligns the title and subtitle block. Everything else (bar rows, axis labels, legend) keeps its own layout rules.        |
+| `unit`      | Suffix on every value. Spacing is automatic — see below.                                                                                                      |
 
 ```json
 {
@@ -86,6 +115,21 @@ Every request is discriminated by its `type` field.
   "bars": [{ "label": "A", "value": 10 }]
 }
 ```
+
+#### Unit spacing
+
+`unit` is joined to the number by the rule in `src/utils/format.ts`, so a
+chart never disagrees with itself:
+
+| `unit`      | Renders    | Why                                                     |
+| ----------- | ---------- | ------------------------------------------------------- |
+| `"%"`, `"°"` | `94%`      | Symbols attach — a space would be wrong.                 |
+| `"deps"`, `"ms"`, `"req/s"` | `25 deps` | Word units take a space, per SI convention. |
+| `"k qps"`, `"M"`, `"x"` | `42k qps` | A leading magnitude suffix attaches, and carries the rest of the unit with it. |
+
+The check is on the unit's first token, which is what keeps `"k qps"` from
+becoming `42 k qps` while `"kg"` still renders as `64 kg`. To override, write
+the space yourself — a `unit` starting with a space is passed through as-is.
 
 ### `benchmark` — horizontal bar chart
 
@@ -209,6 +253,7 @@ src/
   utils/
     tokens.ts                 Spacing / radius / color / typography scales
     layout.ts                 textAlign anchoring + height-floor helper
+    format.ts                 Value rounding + unit spacing, shared by all templates
   types/
     index.ts                  Shared render-pipeline types
 assets/

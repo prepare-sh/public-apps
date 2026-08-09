@@ -6,19 +6,22 @@ import { Badge } from "../components/Badge.js";
 import { spacing, type AccentToken } from "../utils/tokens.js";
 import { applyMinHeight, headingAnchor } from "../utils/layout.js";
 import type { BenchmarkInput } from "../schemas/benchmark.js";
+import { formatValue } from "../utils/format.js";
 
 const PADDING = spacing.xl; // 24
 const ROW_HEIGHT = 40;
+/**
+ * Extra height spreads the rows apart rather than pooling as whitespace at the
+ * bottom — which is what makes this template usable in a `valign: "stretch"`
+ * grid cell. Capped, because past this the rows read as unrelated rather than
+ * as a list; anything beyond the cap still pads.
+ */
+const MAX_ROW_HEIGHT = 72;
 const BAR_HEIGHT = 12;
 const LABEL_COLUMN_WIDTH = 168;
 const VALUE_COLUMN_WIDTH = 64;
 const HEADER_HEIGHT_NO_SUBTITLE = 52;
 const HEADER_HEIGHT_WITH_SUBTITLE = 76;
-
-function formatValue(value: number, unit?: string): string {
-  const rounded = Number.isInteger(value) ? value.toString() : value.toFixed(1);
-  return unit ? `${rounded}${unit}` : rounded;
-}
 
 export function benchmarkChartDimensions(input: BenchmarkInput): { width: number; height: number } {
   const width = input.width ?? 720;
@@ -27,12 +30,21 @@ export function benchmarkChartDimensions(input: BenchmarkInput): { width: number
   return { width, height: applyMinHeight(content, input.height) };
 }
 
+/** Row pitch, grown to absorb a requested height above the natural one. */
+function benchmarkRowHeight(input: BenchmarkInput): number {
+  if (input.height === undefined) return ROW_HEIGHT;
+  const headerHeight = input.subtitle ? HEADER_HEIGHT_WITH_SUBTITLE : HEADER_HEIGHT_NO_SUBTITLE;
+  const available = input.height - (PADDING + headerHeight + PADDING);
+  return Math.min(MAX_ROW_HEIGHT, Math.max(ROW_HEIGHT, available / input.bars.length));
+}
+
 export function BenchmarkChart(props: BenchmarkInput) {
   const { title, subtitle, unit, bars } = props;
   const { width, height } = benchmarkChartDimensions(props);
   const headerHeight = subtitle ? HEADER_HEIGHT_WITH_SUBTITLE : HEADER_HEIGHT_NO_SUBTITLE;
   const heading = headingAnchor(props.textAlign, width, PADDING);
 
+  const rowHeight = benchmarkRowHeight(props);
   const maxValue = props.maxValue ?? Math.max(...bars.map((b) => b.value));
   const barAreaX = PADDING + LABEL_COLUMN_WIDTH;
   const barAreaWidth = width - PADDING - LABEL_COLUMN_WIDTH - VALUE_COLUMN_WIDTH - PADDING;
@@ -58,8 +70,8 @@ export function BenchmarkChart(props: BenchmarkInput) {
       <Line x1={PADDING} y1={chartTop - 8} x2={width - PADDING} y2={chartTop - 8} stroke="border" />
 
       {bars.map((bar, i) => {
-        const rowY = chartTop + i * ROW_HEIGHT;
-        const barY = rowY + (ROW_HEIGHT - BAR_HEIGHT) / 2;
+        const rowY = chartTop + i * rowHeight;
+        const barY = rowY + (rowHeight - BAR_HEIGHT) / 2;
         const ratio = maxValue > 0 ? Math.min(bar.value / maxValue, 1) : 0;
         const barWidth = barAreaWidth * ratio;
         const variant: AccentToken = bar.variant ?? "primary";
@@ -68,13 +80,13 @@ export function BenchmarkChart(props: BenchmarkInput) {
 
         return (
           <g key={`${bar.label}-${i}`}>
-            <Text x={PADDING} y={rowY + ROW_HEIGHT / 2 + 4} variant="label">
+            <Text x={PADDING} y={rowY + rowHeight / 2 + 4} variant="label">
               {truncate(bar.label, availableLabelWidth)}
             </Text>
             {bar.highlight ? (
               <Badge
                 x={PADDING + Math.min(labelWidth, LABEL_COLUMN_WIDTH - 46) + spacing.sm}
-                y={rowY + ROW_HEIGHT / 2 - 11}
+                y={rowY + rowHeight / 2 - 11}
                 label="Best"
                 variant={variant}
               />
@@ -85,7 +97,7 @@ export function BenchmarkChart(props: BenchmarkInput) {
 
             <Text
               x={barAreaX + barAreaWidth + VALUE_COLUMN_WIDTH - spacing.xs}
-              y={rowY + ROW_HEIGHT / 2 + 4}
+              y={rowY + rowHeight / 2 + 4}
               variant="value"
               align="end"
               color="text"
