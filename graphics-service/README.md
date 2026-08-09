@@ -68,6 +68,25 @@ curl -X POST http://localhost:3000/render/multiple?format=png \
 
 Every request is discriminated by its `type` field.
 
+### Options shared by every template
+
+| Field       | Notes                                                                                                                                                        |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `width`     | Canvas width in px. Benchmark defaults to 720 (320–2400), radar to 720 (400–1600).                                                                            |
+| `height`    | Canvas height in px — a _floor_, not an override. A height below what the content needs would clip it, so the computed height wins; extra room sits at the bottom. |
+| `textAlign` | `left` (default) / `center` / `right`. Aligns the title and subtitle block. Everything else (bar rows, axis labels, legend) keeps its own layout rules.        |
+
+```json
+{
+  "type": "benchmark",
+  "title": "Model Performance",
+  "textAlign": "center",
+  "width": 900,
+  "height": 400,
+  "bars": [{ "label": "A", "value": 10 }]
+}
+```
+
 ### `benchmark` — horizontal bar chart
 
 See the Quick start example above. Bars take an optional `variant`

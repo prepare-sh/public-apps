@@ -3,6 +3,7 @@ import { Text, measureText } from "../components/Text.js";
 import { Line } from "../components/Line.js";
 import { Polygon } from "../components/Polygon.js";
 import { color, spacing, seriesPalette } from "../utils/tokens.js";
+import { applyMinHeight, headingAnchor, type HeadingAnchor } from "../utils/layout.js";
 import type { RadarChartInput, RadarSeries } from "../schemas/radar.js";
 
 const PADDING = spacing.xl; // 24
@@ -177,6 +178,7 @@ interface RadarLayout {
   gutterX: number;
   legendTop: number;
   rows: LegendItem[][];
+  heading: HeadingAnchor;
 }
 
 /** Single source of truth for geometry — used by both the dimensions helper and the render. */
@@ -195,9 +197,19 @@ function radarChartLayout(input: RadarChartInput): RadarLayout {
 
   const legendTop = center.y + plotRadius + AXIS_LABEL_GUTTER_Y + LEGEND_TOP_GAP;
   const rows = legendRows(input, width - 2 * PADDING);
-  const height = legendTop + rows.length * LEGEND_ROW_HEIGHT + PADDING;
+  const content = legendTop + rows.length * LEGEND_ROW_HEIGHT + PADDING;
+  const height = applyMinHeight(content, input.height);
 
-  return { width, height, center, plotRadius, gutterX, legendTop, rows };
+  return {
+    width,
+    height,
+    center,
+    plotRadius,
+    gutterX,
+    legendTop,
+    rows,
+    heading: headingAnchor(input.textAlign, width, PADDING),
+  };
 }
 
 export function radarChartDimensions(input: RadarChartInput): { width: number; height: number } {
@@ -207,7 +219,8 @@ export function radarChartDimensions(input: RadarChartInput): { width: number; h
 
 export function RadarChart(props: RadarChartInput) {
   const { title, subtitle, axes, series } = props;
-  const { width, height, center, plotRadius, gutterX, legendTop, rows } = radarChartLayout(props);
+  const { width, height, center, plotRadius, gutterX, legendTop, rows, heading } =
+    radarChartLayout(props);
 
   const axisGeometry: AxisGeometry[] = axes.map((axis, i) => ({
     label: axis.label,
@@ -239,11 +252,17 @@ export function RadarChart(props: RadarChartInput) {
 
   return (
     <Canvas width={width} height={height}>
-      <Text x={PADDING} y={PADDING + 20} variant="title">
+      <Text x={heading.x} y={PADDING + 20} variant="title" align={heading.align}>
         {title}
       </Text>
       {subtitle ? (
-        <Text x={PADDING} y={PADDING + 44} variant="subtitle" color="muted">
+        <Text
+          x={heading.x}
+          y={PADDING + 44}
+          variant="subtitle"
+          color="muted"
+          align={heading.align}
+        >
           {subtitle}
         </Text>
       ) : null}

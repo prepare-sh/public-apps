@@ -4,6 +4,7 @@ import { Rect } from "../components/Rect.js";
 import { Line } from "../components/Line.js";
 import { Badge } from "../components/Badge.js";
 import { spacing, type AccentToken } from "../utils/tokens.js";
+import { applyMinHeight, headingAnchor } from "../utils/layout.js";
 import type { BenchmarkInput } from "../schemas/benchmark.js";
 
 const PADDING = spacing.xl; // 24
@@ -22,14 +23,15 @@ function formatValue(value: number, unit?: string): string {
 export function benchmarkChartDimensions(input: BenchmarkInput): { width: number; height: number } {
   const width = input.width ?? 720;
   const headerHeight = input.subtitle ? HEADER_HEIGHT_WITH_SUBTITLE : HEADER_HEIGHT_NO_SUBTITLE;
-  const height = PADDING + headerHeight + input.bars.length * ROW_HEIGHT + PADDING;
-  return { width, height };
+  const content = PADDING + headerHeight + input.bars.length * ROW_HEIGHT + PADDING;
+  return { width, height: applyMinHeight(content, input.height) };
 }
 
 export function BenchmarkChart(props: BenchmarkInput) {
   const { title, subtitle, unit, bars } = props;
   const { width, height } = benchmarkChartDimensions(props);
   const headerHeight = subtitle ? HEADER_HEIGHT_WITH_SUBTITLE : HEADER_HEIGHT_NO_SUBTITLE;
+  const heading = headingAnchor(props.textAlign, width, PADDING);
 
   const maxValue = props.maxValue ?? Math.max(...bars.map((b) => b.value));
   const barAreaX = PADDING + LABEL_COLUMN_WIDTH;
@@ -38,11 +40,17 @@ export function BenchmarkChart(props: BenchmarkInput) {
 
   return (
     <Canvas width={width} height={height}>
-      <Text x={PADDING} y={PADDING + 20} variant="title">
+      <Text x={heading.x} y={PADDING + 20} variant="title" align={heading.align}>
         {title}
       </Text>
       {subtitle ? (
-        <Text x={PADDING} y={PADDING + 44} variant="subtitle" color="muted">
+        <Text
+          x={heading.x}
+          y={PADDING + 44}
+          variant="subtitle"
+          color="muted"
+          align={heading.align}
+        >
           {subtitle}
         </Text>
       ) : null}

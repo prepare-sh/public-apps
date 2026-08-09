@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { textAlignSchema } from "./common.js";
 
 export const radarAxisSchema = z.object({
   label: z.string().min(1).max(40),
@@ -28,6 +29,10 @@ export const radarChartSchema = z
     /** Global scale used by any axis without its own `max`. Required unless every axis sets its own max. */
     maxValue: z.number().positive().optional(),
     width: z.number().int().min(400).max(1600).optional(),
+    /** Minimum canvas height. Ignored if the plot and legend need more room than this. */
+    height: z.number().int().min(200).max(4000).optional(),
+    /** Alignment of the title/subtitle block. Defaults to "left". */
+    textAlign: textAlignSchema.optional(),
   })
   .refine((data) => data.series.every((s) => s.values.length === data.axes.length), {
     message: "Each series' values array must have exactly one value per axis",
