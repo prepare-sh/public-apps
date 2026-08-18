@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redis Cache-Aside Demo</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="glow"></div>
+
+    <main class="wrap">
+      <header class="header">
+        <span class="eyebrow">Redis · Cache-aside demo</span>
+        <h1 class="title">Quarterly Report</h1>
+        <p class="lede">
+          The first click runs the slow query and stores the result in Redis under
+          <code>report</code>. Every click after that is served straight from the
+          cache &mdash; until the TTL expires.
+        </p>
+        <div class="divider"></div>
+      </header>
+
+      <section class="card">
+        <div class="readout">
+          <span id="badge" class="badge badge-idle">READY</span>
+          <div class="timer">
+            <span id="elapsed">&mdash;</span><span class="unit">ms</span>
+          </div>
+          <p id="status" class="status">Click the button to fetch the report.</p>
+        </div>
+
+        <button id="fetch" class="btn">Fetch Report</button>
+      </section>
+
+      <section id="result" class="result" hidden>
+        <div class="result-head">
+          <h2 id="result-title">&nbsp;</h2>
+          <span id="result-meta" class="result-meta"></span>
+        </div>
+        <table class="table">
+          <thead>
+            <tr><th>Region</th><th class="num">Revenue</th></tr>
+          </thead>
+          <tbody id="result-rows"></tbody>
+        </table>
+      </section>
+
+      <p class="hint">
+        Force a fresh miss between takes: <code>redis-cli DEL report</code>
+      </p>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
