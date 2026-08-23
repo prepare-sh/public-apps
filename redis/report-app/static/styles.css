@@ -128,6 +128,12 @@ code {
   color: #6bb585;
 }
 
+.badge-error {
+  background: rgba(220, 56, 44, 0.12);
+  border-color: rgba(220, 56, 44, 0.45);
+  color: #e5675c;
+}
+
 .timer {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 72px;
@@ -136,6 +142,10 @@ code {
   color: #f5efe4;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+}
+
+.timer .is-idle {
+  color: #3a332a;
 }
 
 .timer .unit {

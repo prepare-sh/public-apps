@@ -9,8 +9,8 @@ or green **CACHE HIT** badge, so the difference is obvious on screen.
 
 ## Prerequisites
 
-- Docker + Docker Compose (or Python 3.9+ if running natively)
-- A Redis server already running and reachable (default `localhost:6379`)
+- Docker + Docker Compose (Compose brings its own Redis — nothing to install)
+- Or, to run natively: Python 3.9+ and a Redis reachable at `localhost:6379`
 
 ## Run with Docker (recommended)
 
@@ -20,13 +20,9 @@ docker compose up --build
 
 Then open <http://localhost:5000>.
 
-The container uses `network_mode: host`, so it talks to the Redis already running
-natively on the VM at `localhost:6379` — same arrangement as the PostgreSQL tutorials.
-If you don't have Redis installed natively, start one in Docker first:
-
-```bash
-docker run -d --name redis -p 6379:6379 redis:7-alpine
-```
+Compose starts two services: `redis` (redis:7-alpine, published on `6379`) and
+`cache-app`, which reaches it over the Compose network at hostname `redis`. The app
+waits for Redis's healthcheck before starting, so a fresh clone works with one command.
 
 ## Run without Docker
 
@@ -51,8 +47,8 @@ redis-cli GET report    # see the cached JSON
 redis-cli TTL report    # seconds left before it expires
 ```
 
-If Redis itself is running in Docker rather than natively, prefix those with
-`docker exec -it redis` — e.g. `docker exec -it redis redis-cli DEL report`.
+Running under Compose, use the `redis` service — e.g.
+`docker compose exec redis redis-cli DEL report`.
 
 ## Environment variables
 
@@ -70,6 +66,9 @@ If Redis itself is running in Docker rather than natively, prefix those with
 - `GET /api/report` — the cache-aside endpoint; returns `{"source": "cache" | "computed", "ttl": ..., "data": {...}}`
 - `GET /api/health` — `{"status": "ok", "redis": true}`, handy for a readiness check:
   `curl -sf http://localhost:5000/api/health`
+
+If Redis is unreachable, `/api/report` returns `503` with `{"error": "..."}` (JSON, not
+an HTML error page) and the page shows an **ERROR** badge instead of hanging.
 
 ## The code that matters
 

@@ -4,7 +4,7 @@ import json
 import random
 
 import redis
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 
 REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.environ.get("REDIS_PORT", 6379))
@@ -36,21 +36,49 @@ def build_report():
 
 @app.get("/api/report")
 def get_report():
-    # ---- cache-aside pattern ----
-    cached = r.get(CACHE_KEY)
+    try:
+        # ---- cache-aside pattern ----
+        cached = r.get(CACHE_KEY)
 
-    if cached:
-        return jsonify({"source": "cache", "ttl": r.ttl(CACHE_KEY), "data": json.loads(cached)})
+        if cached:
+            return jsonify({"source": "cache", "ttl": r.ttl(CACHE_KEY), "data": json.loads(cached)})
 
-    report = build_report()
-    r.set(CACHE_KEY, json.dumps(report), ex=CACHE_TTL_SECONDS)
-    return jsonify({"source": "computed", "ttl": CACHE_TTL_SECONDS, "data": report})
-    # -----------------------------
+        report = build_report()
+        r.set(CACHE_KEY, json.dumps(report), ex=CACHE_TTL_SECONDS)
+        return jsonify({"source": "computed", "ttl": CACHE_TTL_SECONDS, "data": report})
+        # -----------------------------
+    except redis.RedisError as exc:
+        # Redis is down / unreachable -- say so in JSON so the UI can show it.
+        return jsonify({"error": f"Redis unavailable at {REDIS_HOST}:{REDIS_PORT} ({exc})"}), 503
 
 
 @app.get("/api/health")
 def health():
-    return jsonify({"status": "ok", "redis": r.ping()})
+    try:
+        return jsonify({"status": "ok", "redis": r.ping()})
+    except redis.RedisError as exc:
+        return jsonify({"status": "degraded", "redis": False, "error": str(exc)}), 503
+
+
+@app.errorhandler(Exception)
+def json_errors(exc):
+    """Keep /api/* responses JSON so the frontend never chokes on an HTML error page."""
+    code = getattr(exc, "code", 500)
+    if request.path.startswith("/api/"):
+        return jsonify({"error": getattr(exc, "description", str(exc))}), code
+    return (getattr(exc, "description", str(exc)), code)
+
+
+@app.get("/favicon.ico")
+def favicon():
+    # Tiny inline SVG favicon -- avoids the browser's 404 on /favicon.ico
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+        '<rect width="32" height="32" rx="7" fill="#dc382c"/>'
+        '<text x="16" y="23" font-size="19" font-family="Georgia,serif" '
+        'font-weight="700" fill="#fff6f4" text-anchor="middle">R</text></svg>'
+    )
+    return app.response_class(svg, mimetype="image/svg+xml")
 
 
 @app.get("/")
