@@ -20,6 +20,17 @@ function render(counts) {
   unsafeEl.textContent = counts.unsafe_likes.toLocaleString();
 }
 
+function clearBurstStats() {
+  statN.textContent = "0";
+  statGained.textContent = "0";
+  statUnsafe.textContent = "0";
+  statLost.textContent = "0";
+  statGained.className = "stat-value";
+  statUnsafe.className = "stat-value";
+  statLost.className = "stat-value";
+  burstResult.hidden = true;
+}
+
 async function call(path, options) {
   const response = await fetch(path, options);
 
@@ -91,8 +102,8 @@ resetBtn.addEventListener("click", async () => {
   try {
     render(await call("/api/reset", { method: "POST" }));
     setLiked(false);
-    burstResult.hidden = true;
-    statusEl.textContent = "Both keys deleted. Counters back to 0.";
+    clearBurstStats();
+    statusEl.textContent = "Both keys deleted. Counters and burst stats back to 0.";
   } catch (err) {
     statusEl.textContent = err.message || "Reset failed.";
   } finally {
