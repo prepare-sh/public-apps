@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/static/favicon.ico" sizes="any" />
+    <title>Redis Atomic Counter Demo</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="glow"></div>
+
+    <main class="wrap">
+      <header class="header">
+        <span class="eyebrow">Redis · Atomic counter demo</span>
+        <h1 class="title">One Post, One Counter</h1>
+        <p class="lede">
+          The Like button runs a single <code>INCR likes:post1</code>. Redis does the
+          read-modify-write itself, so a hundred simultaneous clicks add exactly a
+          hundred. The counter beside it does the same job with
+          <code>GET</code> then <code>SET</code> &mdash; and loses updates.
+        </p>
+        <div class="divider"></div>
+      </header>
+
+      <section class="card">
+        <article class="post">
+          <div class="post-head">
+            <div class="avatar">R</div>
+            <div>
+              <div class="post-author">Redis Weekly</div>
+              <div class="post-meta">3 min read · pinned</div>
+            </div>
+          </div>
+          <h2 class="post-title">Why your like button needs INCR</h2>
+          <p class="post-body">
+            Two users click Like at the same millisecond. Your app reads 41, adds one,
+            writes 42 &mdash; twice. One like just vanished. Redis fixes this by doing
+            the whole increment in a single command that nothing else can interleave with.
+          </p>
+        </article>
+
+        <div class="counters">
+          <div class="counter">
+            <span class="counter-label">Atomic <span class="tag tag-safe">INCR</span></span>
+            <div id="likes" class="counter-value">0</div>
+            <code class="counter-key">likes:post1</code>
+          </div>
+          <div class="counter">
+            <span class="counter-label">Unsafe <span class="tag tag-unsafe">GET + SET</span></span>
+            <div id="unsafe-likes" class="counter-value is-unsafe">0</div>
+            <code class="counter-key">unsafe:likes:post1</code>
+          </div>
+        </div>
+
+        <button id="like" class="btn" aria-pressed="false">
+          <span class="heart">&#9825;</span><span id="like-label">Like</span>
+        </button>
+        <p id="status" class="status">Click Like to run INCR.</p>
+      </section>
+
+      <section class="card burst">
+        <div class="burst-head">
+          <h2>Concurrency test</h2>
+          <p>Fires N likes at once from a server-side thread pool.</p>
+        </div>
+        <div class="burst-controls">
+          <label class="field">
+            <span>Requests</span>
+            <input id="burst-n" type="number" value="100" min="1" max="1000" />
+          </label>
+          <button id="burst" class="btn btn-ghost">Fire burst</button>
+          <button id="reset" class="btn btn-quiet">Reset</button>
+        </div>
+        <div id="burst-result" class="burst-result" hidden>
+          <div class="stat">
+            <span class="stat-label">Fired</span>
+            <span id="stat-n" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Atomic gained</span>
+            <span id="stat-gained" class="stat-value is-good">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Unsafe gained</span>
+            <span id="stat-unsafe" class="stat-value is-bad">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Lost updates</span>
+            <span id="stat-lost" class="stat-value is-bad">0</span>
+          </div>
+        </div>
+      </section>
+
+      <p class="hint">
+        Reset between takes: <code>redis-cli DEL likes:post1 unsafe:likes:post1</code>
+      </p>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
