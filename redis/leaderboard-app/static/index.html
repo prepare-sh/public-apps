@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/static/favicon.ico" sizes="any" />
+    <title>Redis Sorted Set Leaderboard</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+
+  <body>
+    <div class="glow"></div>
+
+    <main class="wrap">
+      <header class="header">
+        <span class="eyebrow">Redis · Sorted set demo</span>
+
+        <h1 class="title">Live Leaderboard</h1>
+
+        <p class="lede">
+          Every few seconds, a random player earns points with
+          <code>ZINCRBY</code>. Redis keeps the players ordered by score in a
+          sorted set called <code>leaderboard</code>.
+        </p>
+
+        <div class="divider"></div>
+      </header>
+
+      <section class="card">
+        <div class="leaderboard-head">
+          <div>
+            <h2>Top Players</h2>
+            <p class="leaderboard-subtitle">Scores update automatically</p>
+          </div>
+
+          <span id="badge" class="badge badge-live">LIVE</span>
+        </div>
+
+        <div id="leaderboard" class="leaderboard">
+          <!-- Players rendered by app.js -->
+        </div>
+
+        <div class="controls">
+          <button id="toggle" class="btn btn-ghost">Pause</button>
+
+          <button id="reset" class="btn btn-quiet">Reset</button>
+        </div>
+      </section>
+
+      <p class="hint">
+        Inspect the sorted set:
+        <code>redis-cli ZRANGE leaderboard 0 -1 REV WITHSCORES</code>
+      </p>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
