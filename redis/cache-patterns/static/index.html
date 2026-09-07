@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Storefront &middot; Redis Caching Patterns</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="glow"></div>
+
+    <main class="wrap">
+      <header class="header">
+        <span class="eyebrow">Redis &middot; Caching patterns</span>
+        <h1 class="title">Storefront</h1>
+        <p class="lede">
+          What a customer sees. Every load is a cache-aside read: <code>GET product:1</code>,
+          and on a miss a slow database query that gets stored back into Redis with a TTL.
+        </p>
+        <nav class="nav">
+          <a class="nav-link is-current" href="/">Storefront</a>
+          <a class="nav-link" href="/admin">Admin</a>
+        </nav>
+        <div class="divider"></div>
+      </header>
+
+      <section class="card product-card">
+        <div class="product">
+          <p id="product-name" class="product-name">&mdash;</p>
+          <p class="price"><span class="currency">$</span><span id="price">--.--</span></p>
+        </div>
+
+        <div class="readout">
+          <span id="badge" class="badge badge-idle">READY</span>
+          <div class="metrics">
+            <div class="metric">
+              <span class="metric-label">Read time</span>
+              <span class="metric-value"><span id="elapsed" class="is-idle">0</span><span class="unit">ms</span></span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Cache TTL</span>
+              <span class="metric-value"><span id="ttl" class="is-idle">--</span><span class="unit">s</span></span>
+            </div>
+          </div>
+          <p id="status" class="status">Click reload to read the product.</p>
+        </div>
+
+        <div class="actions">
+          <button id="reload" class="btn">Reload page</button>
+          <label class="toggle">
+            <input id="auto" type="checkbox" />
+            <span>Auto-reload every 2s</span>
+          </label>
+        </div>
+      </section>
+
+      <p class="hint">
+        The TTL above is the real <code>TTL product:1</code>. While it is counting down, this
+        page keeps serving whatever Redis holds &mdash; even if the admin has already changed
+        the price.
+      </p>
+    </main>
+
+    <script src="/static/storefront.js"></script>
+  </body>
+</html>

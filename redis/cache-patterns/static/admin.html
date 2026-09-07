@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin &middot; Redis Caching Patterns</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="glow"></div>
+
+    <main class="wrap">
+      <header class="header">
+        <span class="eyebrow">Redis &middot; Caching patterns</span>
+        <h1 class="title">Admin</h1>
+        <p class="lede">
+          Change the price in the database. The mode below decides what happens to the
+          cached copy in <code>product:1</code> &mdash; nothing, a delete, or a rewrite.
+        </p>
+        <nav class="nav">
+          <a class="nav-link" href="/">Storefront</a>
+          <a class="nav-link is-current" href="/admin">Admin</a>
+        </nav>
+        <div class="divider"></div>
+      </header>
+
+      <section class="card">
+        <h2 class="card-title">Write mode</h2>
+        <div class="modes" id="modes">
+          <label class="mode">
+            <input type="radio" name="mode" value="no-invalidation" />
+            <span class="mode-body">
+              <span class="mode-name">No Invalidation</span>
+              <span class="mode-ops">DB write only</span>
+              <span class="mode-note">The cache is left untouched, so the storefront keeps
+                serving the old price until the TTL expires. This is the bug.</span>
+            </span>
+          </label>
+
+          <label class="mode">
+            <input type="radio" name="mode" value="invalidate-on-write" />
+            <span class="mode-body">
+              <span class="mode-name">Invalidate on Write</span>
+              <span class="mode-ops">DB write &rarr; <code>DEL product:1</code></span>
+              <span class="mode-note">Deleting the key forces the next storefront read to
+                miss and pull the fresh price from the database. This is the fix.</span>
+            </span>
+          </label>
+
+          <label class="mode">
+            <input type="radio" name="mode" value="write-through" />
+            <span class="mode-body">
+              <span class="mode-name">Write-Through</span>
+              <span class="mode-ops">DB write + <code>SET product:1</code></span>
+              <span class="mode-note">The cache is updated as part of the write, so it is
+                never stale for even an instant and the next read is still a hit.</span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 class="card-title">Update price</h2>
+        <form id="price-form" class="price-form">
+          <div class="field">
+            <label class="field-label" for="price">New price (USD)</label>
+            <div class="input-wrap">
+              <span class="input-prefix">$</span>
+              <input id="price" name="price" type="number" step="0.01" min="0" required />
+            </div>
+          </div>
+          <button id="submit" class="btn" type="submit">Update price</button>
+        </form>
+
+        <div class="db-row">
+          <span class="db-label">Database price</span>
+          <span id="db-price" class="db-value">$--.--</span>
+          <span class="db-label">Cache TTL</span>
+          <span id="ttl" class="db-value"><span id="ttl-num">--</span>s</span>
+        </div>
+
+        <div id="ops" class="ops" hidden>
+          <span class="ops-label">Last write performed</span>
+          <ul id="ops-list" class="ops-list"></ul>
+        </div>
+
+        <p id="status" class="status">&nbsp;</p>
+      </section>
+
+      <div class="footer-actions">
+        <button id="reset" class="btn btn-ghost">Reset demo ($79.99, empty cache)</button>
+      </div>
+
+      <p class="hint">
+        Open the <a href="/">storefront</a> in a second window to watch the effect of each
+        mode as you save.
+      </p>
+    </main>
+
+    <script src="/static/admin.js"></script>
+  </body>
+</html>
