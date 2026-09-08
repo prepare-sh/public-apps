@@ -7,10 +7,9 @@ const keyPrefix = document.getElementById("key-prefix");
 
 const badge = document.querySelector(".badge");
 
-const remainingValue = document.getElementById("remaining-value");
-const usedValue = document.getElementById("used-value");
-
-const statusText = document.getElementById("status-text");
+const remainingValue = document.getElementById("remaining");
+const usedValue = document.getElementById("used");
+const statusText = document.getElementById("status");
 
 const loginForm = document.getElementById("login-form");
 const loginButton = document.getElementById("login-button");
@@ -19,8 +18,8 @@ const burstButton = document.getElementById("burst-button");
 const boundaryButton = document.getElementById("boundary-button");
 const resetButton = document.getElementById("reset-button");
 
-const burstAllowed = document.getElementById("burst-allowed");
-const burstBlocked = document.getElementById("burst-blocked");
+const burstAllowed = document.getElementById("allowed-count");
+const burstBlocked = document.getElementById("blocked-count");
 const burstStatus = document.getElementById("burst-status");
 
 const results = document.getElementById("results");
@@ -275,10 +274,6 @@ function renderResults(items) {
     const left = document.createElement("div");
     left.className = "result-left";
 
-    const icon = document.createElement("span");
-    icon.className = "result-icon";
-    icon.textContent = item.allowed ? "✓" : "×";
-
     const attempt = document.createElement("span");
     attempt.className = "result-attempt";
     attempt.textContent = `Attempt ${item.attempt}`;
@@ -287,7 +282,6 @@ function renderResults(items) {
     state.className = "result-state";
     state.textContent = item.allowed ? "Allowed" : "Rate limited";
 
-    left.appendChild(icon);
     left.appendChild(attempt);
     left.appendChild(state);
 
