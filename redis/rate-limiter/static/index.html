@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Rate Limiter · Redis</title>
+
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+
+  <body>
+    <div class="glow"></div>
+
+    <main class="wrap">
+      <!-- Header -->
+      <header class="header">
+        <span class="eyebrow">Redis · Rate limiting</span>
+
+        <h1 class="title">Rate Limiter</h1>
+
+        <p class="lede">
+          Protect a login endpoint from too many requests. Try the same burst
+          against three different algorithms and watch how their behavior
+          changes.
+        </p>
+
+        <div class="divider"></div>
+      </header>
+
+      <!-- Algorithm selector -->
+      <section class="card">
+        <h2 class="card-title">Algorithm</h2>
+
+        <div class="modes">
+          <label class="mode">
+            <input type="radio" name="algorithm" value="fixed" checked />
+
+            <span class="mode-body">
+              <span class="mode-name">Fixed Window</span>
+
+              <span class="mode-ops"> INCR → EXPIRE </span>
+
+              <span class="mode-note">
+                5 requests per 10-second window. The counter resets when the
+                next window begins.
+              </span>
+            </span>
+          </label>
+
+          <label class="mode">
+            <input type="radio" name="algorithm" value="sliding" />
+
+            <span class="mode-body">
+              <span class="mode-name">Sliding Window</span>
+
+              <span class="mode-ops"> ZADD → ZREMRANGEBYSCORE → ZCARD </span>
+
+              <span class="mode-note">
+                5 requests over any rolling 10-second period. There is no hard
+                window boundary.
+              </span>
+            </span>
+          </label>
+
+          <label class="mode">
+            <input type="radio" name="algorithm" value="token" />
+
+            <span class="mode-body">
+              <span class="mode-name">Token Bucket</span>
+
+              <span class="mode-ops"> tokens → refill → consume </span>
+
+              <span class="mode-note">
+                Holds up to 5 tokens and refills at 1 token every 2 seconds.
+                Idle time builds up allowance for short bursts.
+              </span>
+            </span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Current configuration -->
+      <section class="card">
+        <div class="readout">
+          <span id="badge" class="badge badge-idle">READY</span>
+
+          <div class="config">
+            <p id="config-main" class="config-main">5 requests / 10 seconds</p>
+
+            <p id="config-note" class="config-note">Fixed window</p>
+          </div>
+
+          <div class="metrics">
+            <div class="metric">
+              <span class="metric-label">Remaining</span>
+
+              <span class="metric-value">
+                <span id="remaining">5</span>
+              </span>
+            </div>
+
+            <div class="metric">
+              <span class="metric-label">Used</span>
+
+              <span class="metric-value">
+                <span id="used">0</span>
+              </span>
+            </div>
+          </div>
+
+          <p id="status" class="status">Ready to accept login attempts.</p>
+        </div>
+      </section>
+
+      <!-- Login -->
+      <section class="card">
+        <h2 class="card-title">Login</h2>
+
+        <form id="login-form" class="login-form">
+          <div class="field">
+            <label class="field-label" for="username"> Username </label>
+
+            <div class="input-wrap">
+              <input
+                id="username"
+                type="text"
+                value="demo@example.com"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="password"> Password </label>
+
+            <div class="input-wrap">
+              <input
+                id="password"
+                type="password"
+                value="password"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="login-button" class="btn" type="submit">
+              Attempt login
+            </button>
+          </div>
+        </form>
+
+        <p class="form-hint">
+          Authentication always fails. The demo is measuring request volume, not
+          credentials.
+        </p>
+      </section>
+
+      <!-- Burst demo -->
+      <section class="card">
+        <h2 class="card-title">Burst demo</h2>
+
+        <div class="burst-summary">
+          <div class="burst-count">
+            <span id="allowed-count" class="burst-number">0</span>
+            <span class="burst-label">allowed</span>
+          </div>
+
+          <div class="burst-separator">/</div>
+
+          <div class="burst-count">
+            <span id="blocked-count" class="burst-number">0</span>
+            <span class="burst-label">blocked</span>
+          </div>
+        </div>
+
+        <div class="actions burst-actions">
+          <button id="burst-button" class="btn">Burst 10 attempts</button>
+
+          <button id="boundary-button" class="btn btn-ghost">
+            Boundary burst
+          </button>
+
+          <button id="reset-button" class="btn btn-ghost">Reset</button>
+        </div>
+
+        <div id="burst-status" class="burst-status">
+          Run a burst to see the rate limiter in action.
+        </div>
+
+        <div id="results" class="results">
+          <div class="results-empty">No attempts yet.</div>
+        </div>
+      </section>
+
+      <!-- Redis readout -->
+      <section class="card">
+        <h2 class="card-title">Redis operations</h2>
+
+        <div class="ops">
+          <span class="ops-label">Commands used by this algorithm</span>
+
+          <ul id="ops-list" class="ops-list">
+            <li>INCR</li>
+            <li>EXPIRE</li>
+          </ul>
+        </div>
+
+        <div class="db-row">
+          <span class="db-label">Key prefix</span>
+
+          <span id="key-prefix" class="db-value">
+            ratelimit:fixed:demo-client
+          </span>
+        </div>
+
+        <p class="status redis-hint">
+          Inspect the keys directly with <code>redis-cli</code>.
+        </p>
+      </section>
+
+      <p class="hint">
+        The boundary burst is the key experiment: fixed windows can allow two
+        bursts around a window boundary, while sliding windows keep looking back
+        over the previous 10 seconds.
+      </p>
+    </main>
+
+    <script src="/static/rate-limiter.js"></script>
+  </body>
+</html>

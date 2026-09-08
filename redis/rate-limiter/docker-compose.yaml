@@ -1,0 +1,32 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: always
+
+  rate-limiter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PORT=5000
+      - FIXED_WINDOW_LIMIT=5
+      - FIXED_WINDOW_SECONDS=10
+      - SLIDING_WINDOW_LIMIT=5
+      - SLIDING_WINDOW_SECONDS=10
+      - TOKEN_BUCKET_CAPACITY=5
+      - TOKEN_BUCKET_REFILL_SECONDS=2
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: always
