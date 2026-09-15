@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Admin &middot; Redis Pub/Sub</title>
+
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+
+  <body>
+    <div class="glow"></div>
+
+    <main class="wrap">
+      <!-- Header -->
+      <header class="header">
+        <span class="eyebrow">Redis &middot; Pub/Sub</span>
+
+        <h1 class="title">Admin</h1>
+
+        <p class="lede">
+          Send a message onto the <code id="channel-name">notifications</code>
+          channel with a single <code>PUBLISH</code>. Whoever is subscribed at
+          that exact instant receives it &mdash; nobody else ever will.
+        </p>
+
+        <nav class="nav">
+          <a class="nav-link" href="/" target="_blank" rel="noopener">
+            Live Feed &#8599;
+          </a>
+          <a class="nav-link is-current" href="/admin">Admin</a>
+        </nav>
+
+        <div class="divider"></div>
+      </header>
+
+      <!-- Publish -->
+      <section class="card">
+        <h2 class="card-title">Send notification</h2>
+
+        <form id="publish-form" class="publish-form">
+          <div class="field">
+            <label class="field-label" for="message">Message</label>
+
+            <div class="input-wrap">
+              <input
+                id="message"
+                type="text"
+                placeholder="New order placed: #4821"
+                autocomplete="off"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="publish-button" class="btn" type="submit">
+              Publish
+            </button>
+          </div>
+        </form>
+
+        <p id="status" class="status">&nbsp;</p>
+      </section>
+
+      <!-- Redis readout -->
+      <section class="card">
+        <h2 class="card-title">Redis operations</h2>
+
+        <div class="ops">
+          <span class="ops-label">What this button does</span>
+
+          <ul class="ops-list">
+            <li>PUBLISH</li>
+          </ul>
+        </div>
+
+        <div class="db-row">
+          <span class="db-label">Channel</span>
+          <span id="channel-value" class="db-value">notifications</span>
+
+          <span class="db-label">Subscribers notified</span>
+          <span id="subscriber-count" class="db-value">&mdash;</span>
+        </div>
+
+        <p class="status redis-hint">
+          Same effect as running
+          <code>redis-cli PUBLISH notifications "hello"</code> yourself &mdash;
+          the channel does not care who publishes to it.
+        </p>
+      </section>
+
+      <p class="hint">
+        Open the <a href="/">live feed</a> in a second window to watch each
+        message arrive in real time.
+      </p>
+    </main>
+
+    <script src="/static/admin.js"></script>
+  </body>
+</html>

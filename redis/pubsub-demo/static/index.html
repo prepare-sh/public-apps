@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Live Feed &middot; Redis Pub/Sub</title>
+
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+
+  <body>
+    <div class="glow"></div>
+
+    <div id="toast-layer" class="toast-layer"></div>
+
+    <main class="wrap">
+      <!-- Header -->
+      <header class="header">
+        <span class="eyebrow">Redis &middot; Pub/Sub</span>
+
+        <h1 class="title">Live Notification Feed</h1>
+
+        <p class="lede">
+          This page holds a live <code>SUBSCRIBE</code> on the
+          <code id="channel-name">notifications</code> channel over Server-Sent
+          Events. Publish from the <a href="/admin">admin panel</a> or straight from
+          <code>redis-cli</code> &mdash; either way, this feed reacts the instant the
+          message is published.
+        </p>
+
+        <nav class="nav">
+          <a class="nav-link is-current" href="/">Live Feed</a>
+          <a class="nav-link" href="/admin" target="_blank" rel="noopener">
+            Admin &#8599;
+          </a>
+        </nav>
+
+        <p class="status nav-hint">
+          Opens in a new tab &mdash; navigating this tab away would close its
+          live connection, which is exactly the failure mode this demo is
+          about.
+        </p>
+
+        <div class="divider"></div>
+      </header>
+
+      <!-- Connection status -->
+      <section class="card">
+        <div class="readout">
+          <span id="badge" class="badge badge-connecting">
+            <span class="badge-dot"></span>
+            Connecting
+          </span>
+
+          <p class="connected-since">
+            Connected since <span id="connected-at">&mdash;</span>. Only
+            notifications published after that moment can appear below.
+          </p>
+
+          <div class="readout-actions">
+            <button id="disconnect-button" class="btn btn-ghost">
+              Disconnect
+            </button>
+
+            <button id="reconnect-button" class="btn" hidden>Reconnect</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feed -->
+      <section class="card">
+        <h2 class="card-title">Notifications</h2>
+
+        <div id="feed" class="feed">
+          <div class="feed-empty">Waiting for the first notification&hellip;</div>
+        </div>
+      </section>
+
+      <!-- Redis readout -->
+      <section class="card">
+        <h2 class="card-title">Redis operations</h2>
+
+        <div class="ops">
+          <span class="ops-label">What this page does on load</span>
+
+          <ul class="ops-list">
+            <li>SUBSCRIBE</li>
+          </ul>
+        </div>
+
+        <div class="db-row">
+          <span class="db-label">Channel</span>
+          <span id="channel-value" class="db-value">notifications</span>
+        </div>
+
+        <p class="status redis-hint">
+          Try it from a terminal:
+          <code>redis-cli PUBLISH notifications "hello"</code>
+        </p>
+      </section>
+
+      <p class="hint">
+        Disconnect, then publish 2&ndash;3 notifications while nothing is
+        listening. Reconnect and watch: they never arrive. Pub/Sub has no
+        memory &mdash; unlike Streams, there is no backlog to catch up on.
+      </p>
+    </main>
+
+    <script src="/static/feed.js"></script>
+  </body>
+</html>
