@@ -24,9 +24,11 @@
         <p class="lede">
           This page holds a live <code>SUBSCRIBE</code> on the
           <code id="channel-name">notifications</code> channel over Server-Sent
-          Events. Publish from the <a href="/admin">admin panel</a> or straight from
-          <code>redis-cli</code> &mdash; either way, this feed reacts the instant the
-          message is published.
+          Events. Publish from the
+          <a href="/admin" target="_blank" rel="noopener">admin panel</a> or
+          straight from
+          <code>redis-cli</code> &mdash; either way, this feed reacts the
+          instant the message is published.
         </p>
 
         <nav class="nav">
@@ -38,8 +40,7 @@
 
         <p class="status nav-hint">
           Opens in a new tab &mdash; navigating this tab away would close its
-          live connection, which is exactly the failure mode this demo is
-          about.
+          live connection, which is exactly the failure mode this demo is about.
         </p>
 
         <div class="divider"></div>
@@ -73,7 +74,9 @@
         <h2 class="card-title">Notifications</h2>
 
         <div id="feed" class="feed">
-          <div class="feed-empty">Waiting for the first notification&hellip;</div>
+          <div class="feed-empty">
+            Waiting for the first notification&hellip;
+          </div>
         </div>
       </section>
 
@@ -102,8 +105,8 @@
 
       <p class="hint">
         Disconnect, then publish 2&ndash;3 notifications while nothing is
-        listening. Reconnect and watch: they never arrive. Pub/Sub has no
-        memory &mdash; unlike Streams, there is no backlog to catch up on.
+        listening. Reconnect and watch: they never arrive. Pub/Sub has no memory
+        &mdash; unlike Streams, there is no backlog to catch up on.
       </p>
     </main>
 
